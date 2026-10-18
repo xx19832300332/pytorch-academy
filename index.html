@@ -44,7 +44,37 @@
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 4h9l5 5v11H5z"/><path d="M14 4v5h5"/><path d="M8.5 13h7M8.5 16.5h4.5"/></svg>
       <span id="notesLabel">笔记</span>
     </button>
+    <button class="icon-btn" id="btnPrefs" aria-label="显示设置" title="显示设置">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.11A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.7 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.11A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.7a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.11A1.7 1.7 0 0 0 15 4.7a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.3 9v.11A1.7 1.7 0 0 0 20.86 10H21a2 2 0 1 1 0 4h-.11A1.7 1.7 0 0 0 19.4 15z"/></svg>
+    </button>
     <div class="chip" id="progressChip" title="学习进度">0 / 0</div>
+  </div>
+
+  <!-- 显示设置弹层 -->
+  <div class="pref-panel" id="prefPanel" hidden>
+    <div class="pref-row">
+      <span class="pref-k" id="prefThemeLabel">外观</span>
+      <div class="seg sm" id="prefTheme">
+        <button data-theme="light" class="on">浅色</button>
+        <button data-theme="dark">深色</button>
+      </div>
+    </div>
+    <div class="pref-row">
+      <span class="pref-k" id="prefFontLabel">字号</span>
+      <div class="seg sm" id="prefFont">
+        <button data-font="sm">小</button>
+        <button data-font="md" class="on">中</button>
+        <button data-font="lg">大</button>
+      </div>
+    </div>
+    <div class="pref-row">
+      <span class="pref-k" id="prefModeLabel">阅读</span>
+      <div class="seg sm" id="prefMode">
+        <button data-mode="beginner" class="on">新手</button>
+        <button data-mode="advanced">进阶</button>
+      </div>
+    </div>
+    <p class="pref-hint" id="prefHint">进阶模式会隐藏「零基础批注」，只看正文与代码</p>
   </div>
 </header>
 
@@ -99,8 +129,24 @@
   <button data-mark="hl-green" title="绿色标记"><i class="sw sw-g"></i></button>
   <button data-mark="hl-red" title="重点标记（红）"><i class="sw sw-r"></i></button>
   <span class="sep"></span>
+  <button data-act="note" title="把选中的内容摘录到笔记" class="txt">✎</button>
+  <button data-act="ask" title="把选中的内容作为疑问记下来" class="txt">?</button>
+  <span class="sep"></span>
   <button data-mark="hl-underline" title="下划线" class="txt">U</button>
   <button data-mark="clear" title="取消标记" class="txt">✕</button>
+</div>
+
+<!-- 悬浮速查表 -->
+<button class="fab" id="fabCheat" title="速查表（A 键）" aria-label="速查表">
+  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M11 4h7.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H11"/><path d="M7 8h1.5M7 11h1.5M14 8h3M14 11h3"/></svg>
+</button>
+<div class="cheat-panel" id="cheatPanel" hidden>
+  <div class="cheat-head">
+    <b id="cheatTitle">API 速查</b>
+    <button class="icon-btn sm" id="btnCheatClose" aria-label="关闭">✕</button>
+  </div>
+  <div class="cheat-body" id="cheatBody"></div>
+  <div class="cheat-foot"><a href="#/ch99" id="cheatMore">完整速查表 →</a></div>
 </div>
 
 <script src="content/ch00.js"></script>
@@ -118,8 +164,11 @@
 <script src="content/ch12.js"></script>
 <script src="content/ch13.js"></script>
 <script src="content/ch14.js"></script>
+<script src="content/ch15.js"></script>
+<script src="content/ch16.js"></script>
 <script src="content/ch99.js"></script>
 <script src="content/practice.js"></script>
+<script src="content/faq.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

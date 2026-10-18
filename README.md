@@ -1,6 +1,6 @@
 # PyTorch Academy · 从零开始的 PyTorch 教程站
 
-一个**零依赖、无需构建、可离线运行**的 PyTorch 入门教程网站。16 章中英双语课程，自带搜索、学习进度、笔记、重点标记、随堂小测、交互式计算器和 Jupyter Notebook 导出。
+一个**零依赖、无需构建、可离线运行**的 PyTorch 入门教程网站。18 章中英双语课程，自带全文搜索、三态学习进度、笔记、重点标记、随堂小测、错题本、成就徽章、深色模式、交互式计算器和 Jupyter Notebook 导出。
 
 > 面向**大一新生 / 转行初学者**：每个陌生概念都有「零基础批注」，每处数学都有「数学批注」，不需要先补完微积分和线性代数才能开始。
 
@@ -12,17 +12,23 @@
 
 | 功能 | 说明 |
 |---|---|
-| **16 章系统课程** | 从 Python 最小集、环境搭建，到张量、autograd、nn.Module、数据加载、训练循环、过拟合、CNN、RNN、Transformer、显存优化、部署 |
+| **18 章系统课程** | 从 Python 最小集、环境搭建，到张量、autograd、nn.Module、数据加载、训练循环、过拟合、CNN、RNN、Transformer、显存优化、部署，再加**两个综合实战**（图像分类 / 文本分类）|
 | **中英双语** | 每个章节、每个 UI 文案都有中英两版，右上角一键切换 |
 | **全文搜索** | `Ctrl` / `⌘` + `K` 唤起，同时检索中英正文，结果带关键词高亮，支持 ↑↓ / Enter 键盘导航 |
-| **学习进度** | 每章可标记「已完成」，侧栏进度条 + 顶栏 `n / 16` 徽标 |
-| **章节笔记** | 按章自动保存，可一键导出为 `.md` 归档 |
+| **三态学习进度** | 每章区分「未学 / 学习中 / 已完成」，侧栏圆点+颜色，阶段可折叠，顶栏 `n / 18` 徽标 |
+| **章节笔记** | 按章自动保存，划词可直接「摘录 / 记疑问」进笔记，可一键导出为 `.md` 归档 |
+| **错题本** | 小测答错自动收录，集中复习，答对后手动「我掌握了」移除 |
+| **学习数据** | 累计学习时长、连续学习天数、完成度、待复习错题四项，外加 6 枚阶段成就徽章 |
+| **阅读设置** | 深色模式、三档字号、新手/进阶模式（进阶隐藏「零基础批注」）|
+| **断点续读** | 记住每章滚动位置，回来直接回到上次离开的地方 |
+| **悬浮速查表** | 任意页面按 `A` 或点右下角按钮呼出常用 API，不用离开正文 |
 | **重点标记** | 选中任意文字即可高亮（黄 / 绿 / 红 / 下划线四种样式），随章节持久化 |
 | **随堂小测** | 每章 3 道单选题，点选即判卷并锁定，防止「挨个试出来」的假懂 |
 | **交互计算器** | 广播形状计算器（第 3 章）、卷积输出尺寸 / 参数量计算器（第 10 章） |
 | **Jupyter 导出** | 任意章节一键导出 `.ipynb`，正文转 Markdown 单元格、代码块转 code 单元格，本地 `jupyter lab` 直接跑 |
 | **练习指南** | 内置「练习工具怎么用」页，含环境自检代码、三条环境路线、故障对照表 |
-| **完全离线** | 双击 `index.html` 就能用，不联网、不加载任何 CDN |
+| **术语悬停** | 正文里的关键 API 悬停即显示一句话解释 |
+| **完整离线** | 双击 `index.html` 就能用，不联网、不加载任何 CDN |
 
 所有学习数据（进度、笔记、标记）都存在浏览器 `localStorage`，不上传、无账号、无后端。
 
@@ -64,9 +70,11 @@ pytorch-academy/
 ├── css/style.css         # 全部样式（3 栏栅格 + 1280/900/680px 三级响应式断点）
 ├── js/app.js             # 全部逻辑：路由、渲染、搜索、导出、标记、小测、计算器
 ├── content/
-│   ├── ch00.js ~ ch14.js # 16 个章节，每章一个文件，含 zh / en 两份内容
+│   ├── ch00.js ~ ch14.js # 15 章正文，每章一个文件，含 zh / en 两份内容
+│   ├── ch15.js, ch16.js  # 两个综合实战（图像分类 / 文本分类）
 │   ├── ch99.js           # API 速查表
-│   └── practice.js       # 「练习工具怎么用」独立页
+│   ├── practice.js       # 「练习工具怎么用」独立页
+│   └── faq.js            # 常见问题（14 个高频报错与解法）
 ├── assets/               # 站点图标（ico + png）
 └── tools/make_icon.py    # 纯标准库生成多尺寸 .ico 的小工具
 ```
@@ -121,16 +129,17 @@ pytorch-academy/
 - **语法高亮**：手写的单正则 Python 高亮器，无第三方库。
 - **索引**：启动时把每章 HTML 按块级标签切词、去标签后建内存索引，搜索为子串匹配。
 - **导出 `.ipynb`**：遍历正文顶层 DOM，`pre` → code cell，`h2/h3/h4/p/ul/ol/table/callout` → markdown cell，生成 nbformat 4.5 JSON。
-- **持久化 key**：`pta.lang` / `pta.progress` / `pta.notes` / `pta.annotations` / `pta.stars` / `pta.last`。
+- **持久化 key**：`pta.lang` / `pta.progress` / `pta.notes` / `pta.annotations` / `pta.stars` / `pta.last` / `pta.ui` / `pta.fold` / `pta.visited` / `pta.scroll` / `pta.wrong` / `pta.stats`。
 
 ---
 
 ## Roadmap
 
-- [ ] 章节内代码块「一键在 Colab 打开」
+- [x] 深色主题 / 字号调节 / 新手-进阶模式
+- [x] 代码块「一键复制代码并打开 Colab」（Pyodide 没有 PyTorch 轮子，无法在纯前端真正跑 torch）
 - [ ] 笔记支持 Markdown 预览
-- [ ] 深色主题
-- [ ] 进度导出 / 导入（跨设备同步）
+- [ ] 错题本按知识点聚类
+- [ ] 进度导出 / 导入（跨设备同步，需要后端）
 
 欢迎开 Issue 认领。
 
@@ -152,9 +161,9 @@ pytorch-academy/
 
 ## English
 
-A dependency-free, build-free, offline-capable PyTorch course site. 16 bilingual (Chinese / English) chapters covering everything from Python basics and tensors to autograd, `nn.Module`, data pipelines, training loops, regularization, CNNs, RNNs, Transformers, memory optimization and deployment.
+A dependency-free, build-free, offline-capable PyTorch course site. 18 bilingual (Chinese / English) chapters covering everything from Python basics and tensors to autograd, `nn.Module`, data pipelines, training loops, regularization, CNNs, RNNs, Transformers, memory optimization, deployment, plus two capstone projects.
 
-Highlights: full-text search (`Ctrl`/`⌘`+`K`), progress tracking, per-chapter notes with `.md` export, four highlight styles, per-chapter quizzes, two interactive calculators, and one-click **Jupyter Notebook export** for every chapter.
+Highlights: full-text search (`Ctrl`/`⌘`+`K`), tri-state progress with collapsible stages, per-chapter notes with quote-to-note and `.md` export, four highlight styles, per-chapter quizzes with a mistake book, study-time/streak analytics and achievement badges, dark mode with font scaling, beginner/advanced reading modes, scroll-position restore, a floating cheat sheet, two interactive calculators, and one-click **Jupyter Notebook export** for every chapter.
 
 To run: open `index.html`, or serve the folder with any static server. No build step, no dependencies, no backend — all study data stays in `localStorage`.
 

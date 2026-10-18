@@ -14,6 +14,7 @@
     { id: 'p2', zh: '阶段三 · 模型与训练', en: 'Stage 3 · Models & training' },
     { id: 'p3', zh: '阶段四 · 网络结构', en: 'Stage 4 · Architectures' },
     { id: 'p4', zh: '阶段五 · 工程与部署', en: 'Stage 5 · Engineering' },
+    { id: 'p6', zh: '阶段六 · 综合实战', en: 'Stage 6 · Capstone' },
     { id: 'p5', zh: '附录', en: 'Appendix' }
   ];
 
@@ -43,13 +44,18 @@
       copied: '已复制',
       home: '首页',
       practice: '练习工具怎么用',
+      wrongBook: '错题本',
+      faq: '常见问题',
+      stDone: '已完成',
+      stDoing: '学习中',
+      stTodo: '未学习',
       searchEmpty: '没有找到相关内容，换个关键词试试。',
       searchHint: '支持中文 / 英文关键词，例如「广播」「broadcast」「optimizer」',
       searchCount: function (n) { return '共 ' + n + ' 条结果'; },
       searchNav: '↑↓ 选择 · Enter 打开 · Esc 关闭',
       heroTitle1: '从零开始，',
       heroTitle2: '真正学会 PyTorch',
-      heroSub: '16 个章节（含速查表），从矩阵乘法到 Transformer。每章配可运行的 Jupyter Notebook、随堂小测与「零基础批注」，遇到陌生概念和数理知识就在原文旁边解释清楚。',
+      heroSub: '18 个章节（含两个综合实战与速查表），从矩阵乘法到 Transformer。每章配可运行的 Jupyter Notebook、随堂小测与「零基础批注」，遇到陌生概念和数理知识就在原文旁边解释清楚。',
       startLearn: '开始学习',
       continueLearn: '继续上次学习',
       openNotebookTip: '下载本章 Notebook',
@@ -57,6 +63,11 @@
       statDone: '已掌握',
       statNotes: '笔记字数',
       statMarks: '重点标记',
+      kTime: '累计学习（分钟）',
+      kStreak: '连续学习（天）',
+      kProgress: '已完成章节',
+      kWrong: '待复习错题',
+      colabHint: '复制本段代码并在 Colab 新开一个笔记本',
       roadmap: '课程路线图',
       tools: '实践工具',
       tool1t: 'Jupyter Notebook',
@@ -102,13 +113,18 @@
       copied: 'Copied',
       home: 'Home',
       practice: 'How to practice',
+      wrongBook: 'Mistake book',
+      faq: 'FAQ',
+      stDone: 'Completed',
+      stDoing: 'In progress',
+      stTodo: 'Not started',
       searchEmpty: 'Nothing found. Try another keyword.',
       searchHint: 'Chinese and English keywords both work, e.g. 广播 / broadcast / optimizer',
       searchCount: function (n) { return n + ' result(s)'; },
       searchNav: '↑↓ to move · Enter to open · Esc to close',
       heroTitle1: 'Learn PyTorch ',
       heroTitle2: 'properly, from zero',
-      heroSub: '16 chapters including a cheatsheet, from matrix multiplication to Transformers. Every chapter ships a runnable Jupyter notebook, quick quizzes, and beginner notes that explain the unfamiliar math right where you meet it.',
+      heroSub: '18 chapters including two capstone projects and a cheatsheet, from matrix multiplication to Transformers. Every chapter ships a runnable Jupyter notebook, quick quizzes, and beginner notes that explain the unfamiliar math right where you meet it.',
       startLearn: 'Start learning',
       continueLearn: 'Resume where I left off',
       openNotebookTip: 'Download this chapter',
@@ -116,6 +132,11 @@
       statDone: 'Mastered',
       statNotes: 'Note chars',
       statMarks: 'Marks',
+      kTime: 'Minutes studied',
+      kStreak: 'Day streak',
+      kProgress: 'Chapters done',
+      kWrong: 'Mistakes to review',
+      colabHint: 'Copy this snippet and open a new Colab notebook',
       roadmap: 'Roadmap',
       tools: 'Practice tools',
       tool1t: 'Jupyter notebooks',
@@ -148,7 +169,8 @@
     set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
     del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
   };
-  var K = { lang: 'pta.lang', prog: 'pta.progress', note: 'pta.notes', ann: 'pta.annotations', star: 'pta.stars', last: 'pta.last' };
+  var K = { lang: 'pta.lang', prog: 'pta.progress', note: 'pta.notes', ann: 'pta.annotations', star: 'pta.stars', last: 'pta.last',
+    ui: 'pta.ui', fold: 'pta.fold', visited: 'pta.visited', scroll: 'pta.scroll', wrong: 'pta.wrong', stats: 'pta.stats' };
 
   var state = {
     lang: S.get(K.lang, 'zh'),
@@ -158,6 +180,29 @@
     searchHits: []
   };
   if (state.lang !== 'en') state.lang = 'zh';
+
+  /* ---------- 显示偏好：深色 / 字号 / 阅读模式 ---------- */
+  var UI = S.get(K.ui, { theme: 'light', font: 'md', mode: 'beginner' });
+  if (!UI || typeof UI !== 'object') UI = { theme: 'light', font: 'md', mode: 'beginner' };
+  if (!UI.theme) UI.theme = 'light';
+
+  function applyUi() {
+    var h = document.documentElement;
+    h.classList.toggle('theme-dark', UI.theme === 'dark');
+    h.setAttribute('data-font', UI.font === 'sm' ? 'sm' : UI.font === 'lg' ? 'lg' : 'md');
+    h.setAttribute('data-mode', UI.mode === 'advanced' ? 'advanced' : 'beginner');
+    var th = $('#prefTheme'), fo = $('#prefFont'), mo = $('#prefMode');
+    if (th) $$('button', th).forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-theme') === UI.theme); });
+    if (fo) $$('button', fo).forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-font') === UI.font); });
+    if (mo) $$('button', mo).forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-mode') === UI.mode); });
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', UI.theme === 'dark' ? '#0d1117' : '#4f46e5');
+  }
+  function setUi(patch) {
+    Object.keys(patch).forEach(function (k) { UI[k] = patch[k]; });
+    S.set(K.ui, UI);
+    applyUi();
+  }
 
   function t(key) {
     var v = I18N[state.lang][key];
@@ -197,7 +242,9 @@
     overlay: $('#searchOverlay'), sInput: $('#searchInput'), sResults: $('#searchResults'), sFoot: $('#searchFoot'),
     drawer: $('#noteDrawer'), noteArea: $('#noteArea'), noteStatus: $('#noteStatus'),
     noteTitle: $('#noteTitle'), noteSub: $('#noteSub'),
-    toolbar: $('#selToolbar'), scrim: $('#scrim')
+    toolbar: $('#selToolbar'), scrim: $('#scrim'),
+    prefPanel: $('#prefPanel'), prefTheme: $('#prefTheme'), prefFont: $('#prefFont'), prefMode: $('#prefMode'),
+    cheat: $('#cheatPanel')
   };
 
   /* ---------------- python highlighter ---------------- */
@@ -236,6 +283,7 @@
 
   function renderSidebar() {
     var done = progressMap(), stars = starMap();
+    var folded = S.get(K.fold, {});
     var total = CH.length;
     var doneCount = CH.filter(function (c) { return done[c.id]; }).length;
     var pct = total ? Math.round(doneCount / total * 100) : 0;
@@ -251,18 +299,35 @@
     html += '<a class="sb-item' + (state.chapter === 'practice' ? ' active' : '') + '" href="#/practice">' +
       '<span class="sb-num">?</span><span class="sb-title">' + t('practice') + '</span></a>';
 
+    var wn = wrongList().length;
+    html += '<a class="sb-item' + (state.chapter === 'wrong' ? ' active' : '') + '" href="#/wrong">' +
+      '<span class="sb-num">✗</span><span class="sb-title">' + t('wrongBook') + '</span>' +
+      (wn ? '<span class="sb-check" style="color:var(--red)">' + wn + '</span>' : '') + '</a>';
+
+    html += '<a class="sb-item' + (state.chapter === 'faq' ? ' active' : '') + '" href="#/faq">' +
+      '<span class="sb-num">i</span><span class="sb-title">' + t('faq') + '</span></a>';
+
     PARTS.forEach(function (p) {
       var items = CH.filter(function (c) { return c.part === p.id; });
       if (!items.length) return;
-      html += '<div class="sb-part">' + esc(p[state.lang]) + '</div>';
+      var open = !folded[p.id];
+      var pdone = items.filter(function (c) { return done[c.id]; }).length;
+      html += '<div class="sb-part' + (open ? '' : ' collapsed') + '" data-part="' + p.id + '">' +
+        '<span class="caret">▾</span>' + esc(p[state.lang]) +
+        '<span class="pcount">' + pdone + '/' + items.length + '</span></div>';
+      html += '<div class="sb-group' + (open ? '' : ' hide') + '" data-group="' + p.id + '">';
       items.forEach(function (c) {
-        html += '<a class="sb-item' + (state.chapter === c.id ? ' active' : '') + '" href="#/' + c.id + '">' +
+        var st = chapterState(c.id);
+        var dot = st === 'done' ? '✓' : st === 'doing' ? '●' : '○';
+        html += '<a class="sb-item st-' + st + (state.chapter === c.id ? ' active' : '') + '" href="#/' + c.id + '" title="' +
+          (st === 'done' ? t('stDone') : st === 'doing' ? t('stDoing') : t('stTodo')) + '">' +
+          '<span class="st">' + dot + '</span>' +
           '<span class="sb-num">' + esc(c.num) + '</span>' +
           '<span class="sb-title">' + esc(L(c).title) + '</span>' +
           (stars[c.id] ? '<span class="sb-star">★</span>' : '') +
-          (done[c.id] ? '<span class="sb-check">✓</span>' : '') +
           '</a>';
       });
+      html += '</div>';
     });
     els.sidebar.innerHTML = html;
 
@@ -309,20 +374,33 @@
       '<div class="stat"><b>' + markCount + '</b><span>' + t('statMarks') + '</span></div>' +
       '</div></section>';
 
+    /* 学习数据 + 成就 */
+    var bd = badgeUnlocked();
+    html += '<div class="insight-grid">' +
+      '<div class="insight"><div class="v">' + totalMinutes() + '</div><div class="k">' + t('kTime') + '</div></div>' +
+      '<div class="insight"><div class="v">' + streakDays() + '</div><div class="k">' + t('kStreak') + '</div></div>' +
+      '<div class="insight"><div class="v">' + doneCount + '/' + total + '</div><div class="k">' + t('kProgress') + '</div></div>' +
+      '<div class="insight"><div class="v">' + wrongList().length + '</div><div class="k">' + t('kWrong') + '</div></div>' +
+      '</div>';
+    html += '<div class="badges">';
+    badgeDefs().forEach(function (b) {
+      html += '<span class="badge' + (bd[b.id] ? ' on' : '') + '" title="' + esc(b.need.join(' ')) + '">' +
+        b.icon + ' ' + esc(b.name) + '</span>';
+    });
+    html += '</div>';
+
     html += '<div class="sec-h"><h2>' + t('roadmap') + '</h2><span>' + doneCount + '/' + total + '</span></div>';
-    html += '<div class="roadmap">';
+    html += '<div class="rm-path">';
     PARTS.forEach(function (p) {
       var items = CH.filter(function (c) { return c.part === p.id; });
       if (!items.length) return;
-      html += '<div class="rm-part"><div class="rm-head"><b>' + esc(p[state.lang]) + '</b>' +
-        '<span class="cnt">' + items.length + '</span></div><div class="rm-items">';
+      html += '<div class="rm-part-label">' + esc(p[state.lang]) + '</div>';
       items.forEach(function (c) {
-        var d = L(c);
-        html += '<a class="rm-item' + (done[c.id] ? ' done' : '') + '" href="#/' + c.id + '">' +
-          '<span class="n">' + esc(c.num) + '</span>' +
-          '<span class="t"><b>' + esc(d.title) + '</b><span>' + esc(d.sub || '') + '</span></span></a>';
+        var d2 = L(c), st = chapterState(c.id);
+        html += '<a class="rm-node ' + st + '" href="#/' + c.id + '">' +
+          '<span class="num">' + esc(c.num) + '</span>' +
+          '<span class="tt"><b>' + esc(d2.title) + '</b><span>' + esc(d2.sub || '') + '</span></span></a>';
       });
-      html += '</div></div>';
     });
     html += '</div>';
 
@@ -395,6 +473,10 @@
       '<div class="ch-footer">' +
       (prev ? '<a class="nav-card" href="#/' + prev.id + '"><span>← ' + t('prev') + '</span><b>' + esc(L(prev).title) + '</b></a>' : '<span style="flex:1"></span>') +
       (next ? '<a class="nav-card next" href="#/' + next.id + '"><span>' + t('next') + ' →</span><b>' + esc(L(next).title) + '</b></a>' : '') +
+      '</div>' +
+      '<div class="page-nav">' +
+      '<a class="' + (prev ? '' : 'disabled') + '" href="#/' + (prev ? prev.id : id) + '" title="' + t('prev') + '">↑</a>' +
+      '<a class="' + (next ? '' : 'disabled') + '" href="#/' + (next ? next.id : id) + '" title="' + t('next') + '">↓</a>' +
       '</div>';
 
     els.content.innerHTML = html;
@@ -402,17 +484,24 @@
 
     enhanceChapter(ch);
     buildToc();
+    markVisited(id);
     renderSidebar();
     updateNoteUi();
 
-    var visited = progressMap();
-    if (!visited[id]) { /* 只记录已访问，不算完成 */ }
-    window.scrollTo({ top: 0 });
+    var savedY = scrollMap()[id];
+    window.scrollTo({ top: savedY && savedY > 80 ? savedY : 0 });
     closeDrawer();
   }
 
   function enhanceChapter(ch) {
     var body = $('#chapterBody');
+
+    /* 兼容历史快照：先把已包装过的代码块还原成裸 pre，避免重复套壳 */
+    $$('.codeblock', body).forEach(function (cb) {
+      var pre = cb.querySelector('pre');
+      if (pre) { cb.parentNode.insertBefore(pre, cb); pre.style.margin = ''; }
+      if (cb.parentNode) cb.parentNode.removeChild(cb);
+    });
 
     /* 代码块包装 + 高亮 + 复制 */
     $$('pre', body).forEach(function (pre) {
@@ -426,6 +515,7 @@
       head.className = 'cb-head';
       head.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>' +
         '<span class="cb-lang">' + esc(lang) + '</span>' +
+        (lang === 'python' ? '<button class="cb-colab" title="' + t('colabHint') + '">Colab ↗</button>' : '') +
         '<button class="cb-copy">' + t('copy') + '</button>';
       pre.parentNode.insertBefore(wrap, pre);
       wrap.appendChild(head);
@@ -434,6 +524,15 @@
       head.querySelector('.cb-copy').addEventListener('click', function () {
         var btn = this;
         copyText(raw, function (ok) { btn.textContent = ok ? t('copied') : t('copy'); });
+      });
+      var cbl = head.querySelector('.cb-colab');
+      if (cbl) cbl.addEventListener('click', function () {
+        var btn = this;
+        copyText(raw, function (ok) {
+          btn.textContent = ok ? t('copied') : 'Colab ↗';
+          setTimeout(function () { btn.textContent = 'Colab ↗'; }, 1600);
+          window.open('https://colab.research.google.com/#create=true', '_blank', 'noopener');
+        });
       });
     });
 
@@ -452,6 +551,9 @@
       if (kind === 'shape') buildShapeWidget(w);
       if (kind === 'conv') buildConvWidget(w);
     });
+
+    /* 术语悬停释义 */
+    wrapTerms(body);
 
     /* 头部动作 */
     $$('.ch-actions [data-act]', els.content).forEach(function (btn) {
@@ -484,6 +586,222 @@
     renderSidebar();
     if (btn) btn.textContent = (s[id] ? '★ ' : '☆ ') + t('important');
     if (s[id] && window.__refreshTocStars) window.__refreshTocStars();
+  }
+
+  /* ---------------- 三态进度：未学 / 学习中 / 已完成 ---------------- */
+  function visitedMap() { return S.get(K.visited, {}); }
+  function markVisited(id) {
+    var v = visitedMap();
+    if (!v[id]) { v[id] = Date.now(); S.set(K.visited, v); }
+  }
+  function chapterState(id) {
+    if (progressMap()[id]) return 'done';
+    if (visitedMap()[id]) return 'doing';
+    return 'todo';
+  }
+
+  /* ---------------- 断点续读：记住滚动位置 ---------------- */
+  function scrollMap() { return S.get(K.scroll, {}); }
+  window.addEventListener('scroll', debounce(function () {
+    if (!state.chapter) return;
+    var m = scrollMap();
+    m[state.chapter] = Math.round(window.scrollY);
+    S.set(K.scroll, m);
+  }, 420), { passive: true });
+
+  /* ---------------- 学习数据：时长 / 连续天数 ---------------- */
+  function statsData() {
+    var d = S.get(K.stats, null);
+    if (!d || typeof d !== 'object') d = {};
+    if (!d.days) d.days = {};
+    return d;
+  }
+  function todayKey(d) {
+    d = d || new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  var lastBeat = Date.now();
+  ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(function (ev) {
+    window.addEventListener(ev, function () { lastBeat = Date.now(); }, { passive: true });
+  });
+  function beatStats() {
+    if (document.visibilityState !== 'visible') return;
+    if (Date.now() - lastBeat > 180000) return; /* 3 分钟没动静就不计数 */
+    var s = statsData();
+    var k = todayKey();
+    s.days[k] = (s.days[k] || 0) + 20;
+    s.last = k;
+    S.set(K.stats, s);
+  }
+  function streakDays() {
+    var s = statsData(), n = 0, cur = new Date();
+    /* 今天还没学，就从昨天开始算连续 */
+    if (!s.days[todayKey(cur)]) cur.setDate(cur.getDate() - 1);
+    for (var i = 0; i < 3650; i++) {
+      if (s.days[todayKey(cur)]) { n++; cur.setDate(cur.getDate() - 1); } else break;
+    }
+    return n;
+  }
+  function totalMinutes() {
+    var s = statsData(), sec = 0;
+    Object.keys(s.days).forEach(function (k) { sec += s.days[k] || 0; });
+    return Math.round(sec / 60);
+  }
+
+  /* ---------------- 成就徽章 ---------------- */
+  function badgeDefs() {
+    var zh = state.lang === 'zh';
+    return [
+      { id: 'tensor', name: zh ? '张量入门' : 'Tensor Rookie', need: ['ch02', 'ch03'], icon: '◆' },
+      { id: 'auto', name: zh ? '梯度猎手' : 'Gradient Hunter', need: ['ch04', 'ch07'], icon: '∂' },
+      { id: 'train', name: zh ? '训练师' : 'Trainer', need: ['ch05', 'ch06', 'ch08'], icon: '⟳' },
+      { id: 'deep', name: zh ? '深度玩家' : 'Deep Diver', need: ['ch10', 'ch11', 'ch12'], icon: '▤' },
+      { id: 'deploy', name: zh ? '落地能手' : 'Shipper', need: ['ch13', 'ch14'], icon: '⚑' },
+      { id: 'all', name: zh ? '全通关' : 'Completionist', need: CH.map(function (c) { return c.id; }), icon: '★' }
+    ];
+  }
+  function badgeUnlocked() {
+    var p = progressMap();
+    var out = {};
+    badgeDefs().forEach(function (b) {
+      out[b.id] = b.need.every(function (id) { return !!p[id]; });
+    });
+    return out;
+  }
+
+  /* ---------------- 错题本 ---------------- */
+  function wrongList() {
+    var w = S.get(K.wrong, []);
+    return Array.isArray(w) ? w : [];
+  }
+  function addWrong(rec) {
+    var w = wrongList();
+    var idx = -1;
+    for (var i = 0; i < w.length; i++) { if (w[i].cid === rec.cid && w[i].qi === rec.qi) { idx = i; break; } }
+    if (idx >= 0) { w[idx] = rec; } else { w.push(rec); }
+    S.set(K.wrong, w);
+  }
+  function removeWrong(cid, qi) {
+    S.set(K.wrong, wrongList().filter(function (x) { return !(x.cid === cid && x.qi === qi); }));
+  }
+
+  /* ---------------- 术语悬停释义 ---------------- */
+  var TERMS = [
+    ['tensor', '多维数组的统一叫法。PyTorch 里所有数据都是 tensor，可以理解为「带形状和类型的数组」。'],
+    ['张量', '多维数组的统一叫法，PyTorch 里所有数据的基本形态。'],
+    ['dtype', '元素的数据类型，如 float32 / int64。它决定精度和显存占用。'],
+    ['shape', '张量每个维度上的元素个数，例如 (3, 4) 表示 3 行 4 列。'],
+    ['stride', '在内存里跨过「一个元素」需要跳多少格；transpose 只改 stride 不搬数据。'],
+    ['broadcast', '广播：形状不同的张量做运算时，把长度为 1 的维度自动复制到能对齐。'],
+    ['广播', '形状不同的张量做运算时，把长度为 1 的维度自动复制对齐的规则。'],
+    ['autograd', '自动求导引擎：前向时记录运算图，反向时按链式法则自动算梯度。'],
+    ['grad', '梯度，函数值增长最快的方向；训练时沿它的反方向走就是梯度下降。'],
+    ['backward', '反向传播，调用后梯度会累加到 .grad 上（注意是累加不是覆盖）。'],
+    ['requires_grad', '标记这个张量要不要参与求导；只有它为 True 的叶子才可能拿到 .grad。'],
+    ['detach', '把一个张量从计算图里摘出来，之后对它的操作不再记录梯度。'],
+    ['no_grad', '上下文管理器，里面的运算不建图，用于推理和验证，省显存。'],
+    ['learning rate', '学习率：每一步沿梯度方向走多远。太大震荡，太小收敛慢。'],
+    ['lr', '学习率 learning rate 的缩写，控制每步更新的步长。'],
+    ['epoch', '把整个训练集完整过一遍叫一个 epoch。'],
+    ['batch', '一次喂给模型的一小批样本；batch size 就是这批的样本数。'],
+    ['loss', '损失，衡量预测和标签差多少的标量；训练就是在最小化它。'],
+    ['optimizer', '优化器，根据梯度更新参数的算法，如 SGD / Adam。'],
+    ['overfit', '过拟合：训练集表现好、验证集差，模型把噪声也背下来了。'],
+    ['dropout', '训练时随机把一部分神经元置零，逼模型学冗余特征，缓解过拟合。'],
+    ['BatchNorm', '批归一化：按 batch 统计量把激活值标准化，加速收敛、稳定训练。'],
+    ['embedding', '把离散 id 映射成稠密向量的查表操作，常用于词、类别特征。'],
+    ['softmax', '把一组实数变成和为 1 的概率分布，多分类的输出层常用。'],
+    ['cross entropy', '交叉熵：衡量两个概率分布的差异，分类任务的默认损失。'],
+    ['attention', '注意力：让每个位置按相关性加权汇总其他位置的信息。'],
+    ['convolution', '卷积：用一个滑动的小窗口（卷积核）在输入上提取局部特征。'],
+    ['kernel', '卷积核，滑动窗口里的权重矩阵，决定提取什么特征。'],
+    ['padding', '在输入边缘补零，用来控制输出尺寸、保留边界信息。'],
+    ['stride', '步长：卷积核每次滑动的格子数，步长 2 就等于下采样。'],
+    ['pooling', '池化：在小窗口内取最大或平均，用来降维并增加平移不变性。'],
+    ['AMP', '自动混合精度：前向用 float16 提速、关键处保留 float32 保精度。'],
+    ['CUDA', 'NVIDIA 的 GPU 计算平台；torch.cuda 里的函数只在有 N 卡时可用。'],
+    ['device', '张量所在的设备，cpu 或 cuda:0；跨设备的运算会直接报错。'],
+    ['inplace', '原地操作（名字带下划线，如 add_），直接改原张量、省内存但危险。'],
+    ['view', '改变形状的视图操作，要求内存连续；不连续时要用 reshape。'],
+    ['reshape', '改变形状，必要时会复制一份数据，比 view 更宽容。'],
+    ['permute', '按给定顺序重排维度，常用于把 (C,H,W) 换成 (H,W,C) 来显示。'],
+    ['contiguous', '把张量整理成内存连续，view 之前常需要它。'],
+    ['DataLoader', '把 Dataset 包装成可迭代的 batch 流，支持打乱、多进程加载。'],
+    ['Dataset', '数据集抽象：实现 __len__ 和 __getitem__ 就能被 DataLoader 用。'],
+    ['collate', '把一个 batch 的样本拼成张量的函数，默认行为通常够用。'],
+    ['state_dict', '模型参数的字典快照，保存和加载权重就是存它、读它。'],
+    ['fine-tune', '微调：拿预训练权重当起点，用自己数据继续训练。'],
+    ['正则化', '给模型加约束（如权重衰减、dropout）以抑制过拟合的手段。']
+  ];
+  function wrapTerms(body) {
+    var map = {};
+    TERMS.forEach(function (p) { if (!map[p[0]]) map[p[0]] = p[1]; });
+    var keys = Object.keys(map).sort(function (a, b) { return b.length - a.length; });
+    if (!keys.length) return;
+    $$('code', body).forEach(function (el) {
+      if (el.hasAttribute('data-def')) return;
+      if (el.closest && el.closest('pre')) return;
+      var raw = el.textContent.trim();
+      if (!raw || raw.length > 24) return;
+      for (var i = 0; i < keys.length; i++) {
+        if (raw.toLowerCase() === keys[i].toLowerCase()) {
+          el.setAttribute('data-def', map[keys[i]]);
+          el.setAttribute('title', map[keys[i]]);
+          return;
+        }
+      }
+    });
+  }
+
+  /* ---------------- 悬浮速查表 ---------------- */
+  function cheatData() {
+    var zh = state.lang === 'zh';
+    return [
+      { h: zh ? '创建' : 'Create', rows: [
+        ['torch.tensor([1,2])', zh ? '从列表建张量' : 'from a list'],
+        ['torch.zeros(2,3)', zh ? '全 0' : 'zeros'],
+        ['torch.randn(2,3)', zh ? '标准正态随机' : 'normal random'],
+        ['torch.arange(0,10,2)', zh ? '等差数列' : 'range']
+      ] },
+      { h: zh ? '形状' : 'Shape', rows: [
+        ['x.shape / x.dtype', zh ? '看形状与类型' : 'shape / dtype'],
+        ['x.view(-1,4) / x.reshape', zh ? '改形状' : 'reshape'],
+        ['x.unsqueeze(1)', zh ? '插一个维度' : 'add dim'],
+        ['x.permute(0,2,1)', zh ? '重排维度' : 'permute']
+      ] },
+      { h: zh ? '求导' : 'Autograd', rows: [
+        ['x.requires_grad_(True)', zh ? '开启求导' : 'track grad'],
+        ['loss.backward()', zh ? '反向传播' : 'backprop'],
+        ['x.grad', zh ? '读梯度' : 'read grad'],
+        ['x.detach()', zh ? '脱离计算图' : 'detach']
+      ] },
+      { h: zh ? '模型与训练' : 'Model', rows: [
+        ['nn.Linear(in,out)', zh ? '全连接层' : 'linear layer'],
+        ['nn.Sequential(a,b)', zh ? '串联模块' : 'chain modules'],
+        ['optim.SGD(p, lr=0.1)', zh ? '优化器' : 'optimizer'],
+        ['loss.backward(); opt.step()', zh ? '标准三步' : 'the 3 steps']
+      ] },
+      { h: zh ? '设备' : 'Device', rows: [
+        ['x.to("cuda")', zh ? '搬到 GPU' : 'to GPU'],
+        ['torch.cuda.is_available()', zh ? '有没有 GPU' : 'GPU check'],
+        ['with torch.no_grad():', zh ? '推理不建图' : 'inference']
+      ] }
+    ];
+  }
+  function buildCheatPanel() {
+    var host = $('#cheatBody');
+    if (!host) return;
+    var html = '';
+    cheatData().forEach(function (g) {
+      html += '<h5>' + esc(g.h) + '</h5>';
+      g.rows.forEach(function (r) {
+        html += '<div class="row2"><code>' + esc(r[0]) + '</code><span>' + esc(r[1]) + '</span></div>';
+      });
+    });
+    host.innerHTML = html;
+    var ttl = $('#cheatTitle'), more = $('#cheatMore');
+    if (ttl) ttl.textContent = state.lang === 'zh' ? 'API 速查' : 'API cheat sheet';
+    if (more) more.textContent = state.lang === 'zh' ? '完整速查表 →' : 'Full cheatsheet →';
   }
 
   /* ---------------- TOC ---------------- */
@@ -535,7 +853,21 @@
     $$('li', quiz.querySelector('ol.opts')).forEach(function (x, j) {
       if (j === ans) x.classList.add('correct');
     });
-    if (i !== ans) li.classList.add('wrong');
+    if (i !== ans) {
+      li.classList.add('wrong');
+      var body = $('#chapterBody');
+      var qs = body ? $$('.quiz', body) : [];
+      var qi = qs.indexOf(quiz);
+      var opts = $$('li', quiz.querySelector('ol.opts')).map(function (x) { return txt(x); });
+      var qEl = quiz.querySelector('.q'), eEl = quiz.querySelector('.exp');
+      addWrong({
+        cid: state.chapter || '', qi: qi < 0 ? 0 : qi,
+        q: qEl ? txt(qEl) : (state.lang === 'zh' ? '（题目）' : '(question)'),
+        pick: opts[i] || '', right: opts[ans] || '',
+        exp: eEl ? txt(eEl) : '', t: Date.now()
+      });
+      renderSidebar();
+    }
     saveAnn();
   }
 
@@ -736,6 +1068,23 @@
   }
 
   /* ---------------- drawer / notes ---------------- */
+  /* 划词 → 直接摘录进笔记（带引用前缀），用于「加笔记 / 加疑问」 */
+  function quoteToNote(kind) {
+    var sel = window.getSelection();
+    var text = sel ? String(sel.toString()).replace(/\s+/g, ' ').trim() : '';
+    if (!text || !state.chapter) { hideToolbar(); return; }
+    var zh = state.lang === 'zh';
+    var notes = S.get(K.note, {});
+    var cur = notes[state.chapter] || '';
+    var block = (kind === 'ask' ? (zh ? '> 疑问：' : '> Q: ') : (zh ? '> 摘录：' : '> Note: ')) + text + '\n';
+    notes[state.chapter] = cur ? cur.replace(/\s+$/, '') + '\n\n' + block : block;
+    S.set(K.note, notes);
+    els.noteArea.value = notes[state.chapter];
+    openDrawer();
+    hideToolbar();
+    try { sel.removeAllRanges(); } catch (err) { }
+  }
+
   function openDrawer() {
     els.drawer.classList.add('open');
     els.scrim.hidden = false;
@@ -978,16 +1327,74 @@
     var hash = location.hash.replace(/^#\/?/, '');
     if (!hash || hash === 'home') renderHome();
     else if (hash === 'practice') renderPractice();
+    else if (hash === 'faq') renderFaq();
+    else if (hash === 'wrong') renderWrong();
     else renderChapter(hash);
   }
 
+  /* ---------------- mistake book ---------------- */
+  function renderWrong() {
+    state.chapter = 'wrong';
+    state.undo = [];
+    var zh = state.lang === 'zh';
+    var w = wrongList().sort(function (a, b) { return (b.t || 0) - (a.t || 0); });
+
+    var html = '<div class="ch-head">' +
+      '<div class="ch-kicker">' + (zh ? '复习 · 错题本' : 'Review · Mistake book') + '</div>' +
+      '<h1>' + t('wrongBook') + '</h1>' +
+      '<p class="ch-sub">' + (zh
+        ? '小测答错的题会自动收进这里，点「我掌握了」才会移除——把错题清空，比把章节刷完更有价值。'
+        : 'Every quiz question you miss lands here. They stay until you mark them mastered.') + '</p>' +
+      '</div>';
+
+    if (!w.length) {
+      html += '<div class="empty-state">' + (zh
+        ? '还没有错题。去任意章节把章末小测做一遍吧。'
+        : 'No mistakes yet — take a chapter quiz first.') + '</div>';
+    } else {
+      html += '<div id="chapterBody" class="prose">';
+      w.forEach(function (x) {
+        var c = CH.filter(function (y) { return y.id === x.cid; })[0];
+        html += '<div class="wrong-item" data-cid="' + esc(x.cid || '') + '" data-qi="' + (x.qi || 0) + '">' +
+          '<p class="q">' + esc(x.q || '') + '</p>' +
+          '<div class="opts">' +
+          '<div class="bad">' + (zh ? '你的选择：' : 'You picked: ') + esc(x.pick || '') + '</div>' +
+          '<div class="good">' + (zh ? '正确答案：' : 'Correct: ') + esc(x.right || '') + '</div>' +
+          '</div>' +
+          (x.exp ? '<p class="meta">' + esc(x.exp) + '</p>' : '') +
+          '<div class="acts">' +
+          (c ? '<a class="ghost-btn sm" href="#/' + c.id + '">' + (zh ? '回看第 ' + c.num + ' 章' : 'Chapter ' + c.num) + '</a>' : '') +
+          '<button class="ghost-btn sm" data-act="mastered">' + (zh ? '我掌握了' : 'Got it') + '</button>' +
+          '</div></div>';
+      });
+      html += '</div>';
+    }
+
+    els.content.innerHTML = html;
+    document.title = t('wrongBook') + ' · PyTorch Academy';
+    els.toc.innerHTML = '';
+    renderSidebar();
+    window.scrollTo({ top: 0 });
+    closeDrawer();
+
+    $$('.wrong-item [data-act="mastered"]', els.content).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var box = btn.closest('.wrong-item');
+        removeWrong(box.getAttribute('data-cid'), parseInt(box.getAttribute('data-qi'), 10) || 0);
+        renderWrong();
+      });
+    });
+  }
+
   /* ---------------- practice guide ---------------- */
-  function renderPractice() {
-    var pg = window.PYTORCH_COURSE && window.PYTORCH_COURSE.practice;
+  function renderDoc(key, sid) {
+    var store = window.PYTORCH_COURSE || {};
+    var pg = store[key];
     if (!pg) { location.hash = '#/home'; return; }
     var d = L(pg);
+    var zh = state.lang === 'zh';
 
-    state.chapter = 'practice';
+    state.chapter = sid;
     state.undo = [];
 
     var html = '<div class="ch-head">' +
@@ -997,7 +1404,7 @@
       '<div class="ch-actions">' +
       '<button class="ghost-btn" data-act="notes">' + t('notes') + '</button>' +
       '<div class="right">' +
-      '<a class="ghost-btn primary" href="#/home">' + (state.lang === 'zh' ? '返回目录' : 'Back to syllabus') + '</a>' +
+      '<a class="ghost-btn primary" href="#/home">' + (zh ? '返回目录' : 'Back to syllabus') + '</a>' +
       '</div></div></div>' +
       '<div id="chapterBody" class="prose">' + d.html + '</div>' +
       '<div class="ch-footer"><span style="flex:1"></span>' +
@@ -1007,13 +1414,16 @@
     els.content.innerHTML = html;
     document.title = d.title + ' · PyTorch Academy';
 
-    enhanceChapter({ id: 'practice', num: '', file: 'practice' });
+    enhanceChapter({ id: sid, num: '', file: sid });
     buildToc();
     renderSidebar();
     updateNoteUi();
     window.scrollTo({ top: 0 });
     closeDrawer();
   }
+
+  function renderPractice() { renderDoc('practice', 'practice'); }
+  function renderFaq() { renderDoc('faq', 'faq'); }
 
   /* ---------------- UI text refresh ---------------- */
   function applyLangUi() {
@@ -1126,7 +1536,10 @@
     els.toolbar.addEventListener('mousedown', function (e) { e.preventDefault(); });
     els.toolbar.addEventListener('click', function (e) {
       var b = e.target.closest('button');
-      if (b) applyMark(b.getAttribute('data-mark'));
+      if (!b) return;
+      var act = b.getAttribute('data-act');
+      if (act) { quoteToNote(act); return; }
+      applyMark(b.getAttribute('data-mark'));
     });
 
     /* quiz delegation */
@@ -1138,6 +1551,11 @@
       if (meta && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); openSearch(); }
       if (e.key === 'Escape') { closeSearch(); hideToolbar(); if (els.drawer.classList.contains('open')) closeDrawer(); }
       if (meta && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); if (state.chapter) openDrawer(); }
+      var tag = (document.activeElement && document.activeElement.tagName) || '';
+      if (!meta && (e.key === 'a' || e.key === 'A') && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+        buildCheatPanel();
+        els.cheat.hidden = !els.cheat.hidden;
+      }
     });
 
     /* mobile menu */
@@ -1145,6 +1563,55 @@
       var open = els.sidebar.classList.toggle('open');
       els.scrim.hidden = !open;
     });
+
+    /* ---------- 显示设置面板 ---------- */
+    var btnPrefs = $('#btnPrefs');
+    if (btnPrefs) {
+      btnPrefs.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (els.prefPanel) els.prefPanel.hidden = !els.prefPanel.hidden;
+      });
+    }
+    document.addEventListener('click', function (e) {
+      if (!els.prefPanel || els.prefPanel.hidden) return;
+      if (els.prefPanel.contains(e.target)) return;
+      if (btnPrefs && btnPrefs.contains(e.target)) return;
+      els.prefPanel.hidden = true;
+    });
+    if (els.prefTheme) els.prefTheme.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (b) setUi({ theme: b.getAttribute('data-theme') });
+    });
+    if (els.prefFont) els.prefFont.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (b) setUi({ font: b.getAttribute('data-font') });
+    });
+    if (els.prefMode) els.prefMode.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (b) setUi({ mode: b.getAttribute('data-mode') });
+    });
+
+    /* ---------- 侧栏阶段折叠 ---------- */
+    els.sidebar.addEventListener('click', function (e) {
+      var head = e.target.closest ? e.target.closest('.sb-part') : null;
+      if (!head) return;
+      var pid = head.getAttribute('data-part');
+      var f = S.get(K.fold, {});
+      if (f[pid]) delete f[pid]; else f[pid] = 1;
+      S.set(K.fold, f);
+      renderSidebar();
+    });
+
+    /* ---------- 悬浮速查表 ---------- */
+    var fab = $('#fabCheat');
+    if (fab) fab.addEventListener('click', function () {
+      buildCheatPanel();
+      els.cheat.hidden = !els.cheat.hidden;
+    });
+    var cc = $('#btnCheatClose');
+    if (cc) cc.addEventListener('click', function () { els.cheat.hidden = true; });
+    var more = $('#cheatMore');
+    if (more) more.addEventListener('click', function () { els.cheat.hidden = true; });
 
     /* 离开页面前保存笔记 */
     window.addEventListener('beforeunload', function () {
@@ -1162,10 +1629,14 @@
       els.content.innerHTML = '<div class="empty-state">content failed to load / 内容加载失败。请确认 content/ 目录与 index.html 在同一层级。</div>';
       return;
     }
+    applyUi();
     applyLangUi();
     bind();
+    buildCheatPanel();
     renderRoute();
     renderSidebar();
+    beatStats();
+    setInterval(beatStats, 20000);
     setInterval(function () { renderSidebar(); }, 60000 * 5);
   }
 
