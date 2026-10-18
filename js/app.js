@@ -1271,8 +1271,12 @@
       if (start > 0) snip = '…' + snip;
       if (start + 150 < rec.text.length) snip += '…';
       var score = pos;
-      if (stitle.indexOf(terms[0]) >= 0) score -= 400;
+      /* 小节标题命中权重最高；章节开头那段（si<0）标题就是章名，容易虚高，压一档 */
+      if (rec.si >= 0 && stitle.indexOf(terms[0]) >= 0) score -= 400;
       if (ctitle.indexOf(terms[0]) >= 0) score -= 200;
+      if (rec.si < 0) score += 120;
+      /* 轻微偏好当前界面语言，避免同一处中英各占一条时把母语挤到后面 */
+      if (rec.lang !== state.lang) score += 70;
       hits.push({
         cid: rec.cid, num: rec.num, lang: rec.lang, si: rec.si,
         ctitle: rec.ctitle, stitle: rec.stitle, snip: snip, score: score
