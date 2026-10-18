@@ -1,0 +1,19 @@
+# OS / editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Node (not required by this project, but ignore if someone adds tooling)
+node_modules/
+dist/
+.cache/
+
+# WorkBuddy app markers (internal, not part of the source)
+.wbapp_*
+.workbuddy/
