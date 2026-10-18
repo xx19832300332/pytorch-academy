@@ -86,6 +86,7 @@
       resetConfirm: '将清除所有进度、笔记和标记，确定吗？',
       chipTitle: '已掌握章节',
       foot: 'PyTorch 学习站 · 本地运行，数据只保存在你的浏览器里',
+      disc: '本站为个人学习项目，与 PyTorch 官方及 Meta 无关；内容仅供学习参考，不构成任何专业建议。',
       langTag: '中文',
       notFound: '这一章不存在'
     },
@@ -155,6 +156,7 @@
       resetConfirm: 'This clears progress, notes and marks. Continue?',
       chipTitle: 'Chapters mastered',
       foot: 'PyTorch Academy · Runs locally; your data stays in this browser',
+      disc: 'A personal learning project, not affiliated with or endorsed by PyTorch or Meta. Content is for study only, not professional advice.',
       langTag: 'EN',
       notFound: 'Chapter not found'
     }
@@ -1433,6 +1435,7 @@
     els.sInput.placeholder = t('searchPlaceholder');
     $('#notesLabel').textContent = t('notes');
     $('#footNote').textContent = t('foot');
+    if ($('#footDisc')) $('#footDisc').textContent = t('disc');
     $('#btnExportNotes').textContent = t('exportNotes');
     $('#btnClearNote').textContent = t('clearNote');
     els.noteTitle.textContent = t('notesTitle');
