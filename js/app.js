@@ -825,6 +825,8 @@
         e.preventDefault();
         var el = document.getElementById(a.getAttribute('data-toc'));
         if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 72, behavior: 'smooth' });
+        els.toc.classList.remove('open');
+        els.scrim.hidden = true;
       });
     });
 
@@ -1070,6 +1072,62 @@
   }
 
   /* ---------------- drawer / notes ---------------- */
+  /* ---------------- 学习数据导出 / 导入 ---------------- */
+  function dataKeys() {
+    return [K.lang, K.prog, K.note, K.ann, K.star, K.last, K.ui, K.fold, K.visited, K.scroll, K.wrong, K.stats];
+  }
+  function exportData() {
+    var zh = state.lang === 'zh';
+    var data = {};
+    dataKeys().forEach(function (k) {
+      var v = S.get(k, null);
+      if (v !== null && v !== undefined) data[k] = v;
+    });
+    if (!Object.keys(data).length) {
+      window.alert(zh ? '还没有可导出的学习数据。' : 'Nothing to export yet.');
+      return;
+    }
+    var d = new Date();
+    var stamp = d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+    var payload = {
+      app: 'pytorch-academy',
+      version: 2,
+      exportedAt: d.toISOString(),
+      data: data
+    };
+    download('pytorch-academy-backup-' + stamp + '.json', JSON.stringify(payload, null, 2), 'application/json');
+  }
+
+  function importDataFromFile(file) {
+    var zh = state.lang === 'zh';
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var payload = null;
+      try { payload = JSON.parse(String(reader.result)); } catch (e) { payload = null; }
+      if (!payload || payload.app !== 'pytorch-academy' || !payload.data) {
+        window.alert(zh ? '这不是本站导出的备份文件。' : 'This is not a backup exported by this site.');
+        return;
+      }
+      var keys = dataKeys();
+      var n = 0;
+      Object.keys(payload.data).forEach(function (k) {
+        if (keys.indexOf(k) < 0) return;
+        S.set(k, payload.data[k]);
+        n += 1;
+      });
+      if (!n) {
+        window.alert(zh ? '文件里没有可识别的数据。' : 'No usable data found in that file.');
+        return;
+      }
+      if (!window.confirm(zh
+        ? '已导入 ' + n + ' 项数据，页面将刷新以生效。继续？'
+        : n + ' items imported. The page will reload now. Continue?')) return;
+      location.reload();
+    };
+    reader.readAsText(file);
+  }
+
   /* 划词 → 直接摘录进笔记（带引用前缀），用于「加笔记 / 加疑问」 */
   function quoteToNote(kind) {
     var sel = window.getSelection();
@@ -1121,21 +1179,70 @@
 
   /* ---------------- search ---------------- */
   var INDEX = null;
+  /* 把一章的 HTML 切成「小节」：标题 + 该标题下的正文。
+     返回的 si 就是标题在该章 h2/h3 中的序号，与 buildToc 生成的 sec-N id 一一对应 */
+  function splitSections(html, fallbackTitle) {
+    var d = document.createElement('div');
+    d.innerHTML = html;
+    var out = [], buf = '', title = fallbackTitle, si = -1;
+    var flush = function () {
+      var text = plainText(buf);
+      if (text) out.push({ si: si, title: title, text: text });
+      buf = '';
+    };
+    Array.prototype.forEach.call(d.childNodes, function (n) {
+      if (n.nodeType === 1 && /^H[23]$/.test(n.tagName)) {
+        flush();
+        si += 1;
+        title = String(n.textContent).replace(/\s+/g, ' ').trim() || fallbackTitle;
+      } else if (n.nodeType === 1) {
+        buf += n.outerHTML;
+      } else if (n.nodeType === 3) {
+        buf += n.nodeValue;
+      }
+    });
+    flush();
+    return out;
+  }
+
   function buildIndex() {
     if (INDEX) return INDEX;
-    INDEX = (function () {
-      var list = CH.slice();
-      var pg = window.PYTORCH_COURSE && window.PYTORCH_COURSE.practice;
-      if (pg) list = list.concat([{ id: 'practice', num: '?', zh: pg.zh, en: pg.en }]);
-      return list;
-    })().map(function (c) {
-      return {
-        id: c.id, num: c.num,
-        zhTitle: c.zh.title, enTitle: c.en.title,
-        zhText: plainText(c.zh.html), enText: plainText(c.en.html)
-      };
+    var store = window.PYTORCH_COURSE || {};
+    var list = CH.slice();
+    ['practice', 'faq'].forEach(function (k) {
+      var pg = store[k];
+      if (pg) list = list.concat([{ id: k, num: '?', zh: pg.zh, en: pg.en }]);
+    });
+
+    INDEX = [];
+    list.forEach(function (c) {
+      ['zh', 'en'].forEach(function (lang) {
+        var d = c[lang];
+        if (!d || !d.html) return;
+        splitSections(d.html, d.title).forEach(function (sec) {
+          INDEX.push({
+            cid: c.id, num: c.num, lang: lang,
+            ctitle: d.title, stitle: sec.title,
+            si: sec.si, text: sec.text
+          });
+        });
+      });
     });
     return INDEX;
+  }
+
+  function gotoHit(h) {
+    if (!h) return;
+    closeSearch();
+    var go = function () {
+      if (h.si < 0) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      var el = document.getElementById('sec-' + h.si);
+      if (!el) { window.scrollTo({ top: 0 }); return; }
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 72, behavior: 'smooth' });
+    };
+    if (location.hash === '#/' + h.cid) { go(); return; }
+    location.hash = '#/' + h.cid;
+    setTimeout(go, 320);
   }
 
   function runSearch(q) {
@@ -1150,28 +1257,37 @@
     var terms = query.split(/\s+/).filter(Boolean);
     var hits = [];
     buildIndex().forEach(function (rec) {
-      ['zh', 'en'].forEach(function (lang) {
-        var text = lang === 'zh' ? rec.zhText : rec.enText;
-        var title = lang === 'zh' ? rec.zhTitle : rec.enTitle;
-        var lower = text.toLowerCase();
-        var all = terms.every(function (t2) { return lower.indexOf(t2) >= 0 || title.toLowerCase().indexOf(t2) >= 0; });
-        if (!all) return;
-        var pos = lower.indexOf(terms[0]);
-        if (pos < 0) pos = 0;
-        var start = Math.max(0, pos - 55);
-        var snip = text.slice(start, start + 165);
-        if (start > 0) snip = '…' + snip;
-        if (start + 165 < text.length) snip += '…';
-        var score = (title.toLowerCase().indexOf(terms[0]) >= 0 ? -100 : 0) + pos;
-        hits.push({ id: rec.id, num: rec.num, title: title, lang: lang, snip: snip, score: score });
+      var text = rec.text.toLowerCase();
+      var ctitle = rec.ctitle.toLowerCase();
+      var stitle = rec.stitle.toLowerCase();
+      var all = terms.every(function (t2) {
+        return text.indexOf(t2) >= 0 || ctitle.indexOf(t2) >= 0 || stitle.indexOf(t2) >= 0;
+      });
+      if (!all) return;
+      var pos = text.indexOf(terms[0]);
+      if (pos < 0) pos = 0;
+      var start = Math.max(0, pos - 50);
+      var snip = rec.text.slice(start, start + 150);
+      if (start > 0) snip = '…' + snip;
+      if (start + 150 < rec.text.length) snip += '…';
+      var score = pos;
+      if (stitle.indexOf(terms[0]) >= 0) score -= 400;
+      if (ctitle.indexOf(terms[0]) >= 0) score -= 200;
+      hits.push({
+        cid: rec.cid, num: rec.num, lang: rec.lang, si: rec.si,
+        ctitle: rec.ctitle, stitle: rec.stitle, snip: snip, score: score
       });
     });
     hits.sort(function (a, b) { return a.score - b.score; });
-    var seen = {};
-    hits = hits.filter(function (h) {
-      if (seen[h.id]) return false;
-      seen[h.id] = 1; return true;
-    }).slice(0, 24);
+
+    var seen = {}, out = [];
+    for (var i = 0; i < hits.length && out.length < 30; i++) {
+      var k = hits[i].cid + '|' + hits[i].lang + '|' + hits[i].si;
+      if (seen[k]) continue;
+      seen[k] = 1;
+      out.push(hits[i]);
+    }
+    hits = out;
 
     state.searchHits = hits;
     state.searchSel = 0;
@@ -1188,8 +1304,10 @@
         var re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
         s = s.replace(re, '<mark>$1</mark>');
       });
-      return '<a class="sr-item' + (i === 0 ? ' on' : '') + '" href="#/' + h.id + '" data-h="' + i + '">' +
-        '<div class="top"><b>' + esc(h.num) + '. ' + esc(h.title) + '</b>' +
+      var sec = h.stitle && h.stitle !== h.ctitle ? ' · ' + esc(h.stitle) : '';
+      return '<a class="sr-item' + (i === 0 ? ' on' : '') + '" href="#/' + h.cid + '" data-h="' + i + '"' +
+        ' data-cid="' + esc(h.cid) + '" data-si="' + h.si + '">' +
+        '<div class="top"><b>' + esc(h.num) + '. ' + esc(h.ctitle) + sec + '</b>' +
         '<span class="tag">' + (h.lang === 'zh' ? '中文' : 'EN') + '</span></div>' +
         '<div class="snip">' + s + '</div></a>';
     }).join('');
@@ -1462,6 +1580,7 @@
       renderRoute();
       closeSearch();
       closeDrawer();
+      els.toc.classList.remove('open');
       if (window.innerWidth <= 900) els.sidebar.classList.remove('open');
     });
 
@@ -1487,13 +1606,16 @@
       if (e.key === 'ArrowUp') { e.preventDefault(); searchMove(-1); }
       if (e.key === 'Enter') {
         var hit = state.searchHits[state.searchSel];
-        if (hit) { location.hash = '#/' + hit.id; closeSearch(); }
+        if (hit) { gotoHit(hit); }
       }
     });
     els.overlay.addEventListener('click', function (e) { if (e.target === els.overlay) closeSearch(); });
     els.sResults.addEventListener('click', function (e) {
       var a = e.target.closest('.sr-item');
-      if (a) closeSearch();
+      if (!a) return;
+      e.preventDefault();
+      var hit = state.searchHits[parseInt(a.getAttribute('data-h'), 10)];
+      gotoHit(hit);
     });
 
     /* notes */
@@ -1505,6 +1627,7 @@
     els.scrim.addEventListener('click', function () {
       closeDrawer();
       els.sidebar.classList.remove('open');
+      els.toc.classList.remove('open');
       els.scrim.hidden = true;
     });
     els.noteArea.addEventListener('input', saveNote);
@@ -1561,6 +1684,14 @@
       }
     });
 
+    /* 移动端：本页目录浮层 */
+    var tocBtn = $('#btnTocSheet');
+    if (tocBtn) tocBtn.addEventListener('click', function () {
+      if (!els.toc.querySelector('a[data-toc]')) return;
+      var open = els.toc.classList.toggle('open');
+      els.scrim.hidden = !open;
+    });
+
     /* mobile menu */
     $('#btnMenu').addEventListener('click', function () {
       var open = els.sidebar.classList.toggle('open');
@@ -1594,6 +1725,14 @@
       if (b) setUi({ mode: b.getAttribute('data-mode') });
     });
 
+    /* ---------- 学习数据导出 / 导入 ---------- */
+    var be = $('#btnExportData'), bi = $('#btnImportData'), fi = $('#fileImport');
+    if (be) be.addEventListener('click', exportData);
+    if (bi && fi) {
+      bi.addEventListener('click', function () { fi.value = ''; fi.click(); });
+      fi.addEventListener('change', function () { importDataFromFile(fi.files && fi.files[0]); });
+    }
+
     /* ---------- 侧栏阶段折叠 ---------- */
     els.sidebar.addEventListener('click', function (e) {
       var head = e.target.closest ? e.target.closest('.sb-part') : null;
@@ -1626,6 +1765,16 @@
     });
   }
 
+  /* ---------------- PWA：离线缓存 ---------------- */
+  function registerSW() {
+    /* file:// 下浏览器不允许注册 service worker；本地双击打开本来就是全离线 */
+    if (!('serviceWorker' in navigator)) return;
+    if (!/^https?:$/.test(location.protocol)) return;
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* 静默失败，不影响使用 */ });
+    });
+  }
+
   /* ---------------- boot ---------------- */
   function boot() {
     if (!CH.length) {
@@ -1641,6 +1790,7 @@
     beatStats();
     setInterval(beatStats, 20000);
     setInterval(function () { renderSidebar(); }, 60000 * 5);
+    registerSW();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
