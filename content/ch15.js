@@ -5,7 +5,7 @@
   file: 'capstone-vision',
   zh: {
     title: '综合实战：图像分类全流程',
-    sub: '把前面 14 章拼成一条能跑通的流水线',
+    sub: '把前面 15 章拼成一条能跑通的流水线',
     html: `
 <p class="lead">前面每一章都在拆零件：张量、autograd、nn.Module、DataLoader、损失、优化器、训练循环。这一章不再讲新概念，只做一件事——<b>把它们串成一条从原始数据到能用的模型的完整流水线</b>。走完这一遍，你就会知道真实项目里每一步该写在哪。</p>
 
@@ -239,7 +239,7 @@ print("真实:", label, "预测:", pred, "置信度:", round(prob.max().item(), 
   },
   en: {
     title: 'Capstone: the full image-classification pipeline',
-    sub: 'Wire the previous 14 chapters into one pipeline that actually runs',
+    sub: 'Wire the previous 15 chapters into one pipeline that actually runs',
     html: `
 <p class="lead">Every earlier chapter took a part apart: tensors, autograd, <code>nn.Module</code>, <code>DataLoader</code>, losses, optimizers, the training loop. This chapter adds no new concepts — it <b>connects them into one pipeline from raw data to a model you can ship</b>. Walk it once and you will know where each piece belongs in a real project.</p>
 

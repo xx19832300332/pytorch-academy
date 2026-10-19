@@ -103,6 +103,16 @@ for (const c of chapters) {
       const options = (m[2].match(/<li>/g) || []).length;
       if (ans >= options) fail(`${tag}.${lang}: 小测第 ${quizCount} 题 data-answer=${ans}，但只有 ${options} 个选项`);
       if (!/class="exp"/.test(m[2])) warn(`${tag}.${lang}: 小测第 ${quizCount} 题没有 exp 解析`);
+
+      /* 选项不能重复：出现过「两个选项其实是同一个答案」的硬伤 */
+      const optBlock = m[2].match(/<ol class="opts">([\s\S]*?)<\/ol>/);
+      if (optBlock) {
+        const texts = (optBlock[1].match(/<li>([\s\S]*?)<\/li>/g) || [])
+          .map((li) => li.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim());
+        const dup = texts.find((t, i) => t && texts.indexOf(t) !== i);
+        if (dup) fail(`${tag}.${lang}: 小测第 ${quizCount} 题有重复选项「${dup}」`);
+
+      }
     }
     if (quizCount !== 3) warn(`${tag}.${lang}: 小测数量为 ${quizCount}（建议 3）`);
 

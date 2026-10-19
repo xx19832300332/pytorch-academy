@@ -857,3 +857,85 @@ html[data-mode="advanced"] .callout.basic { display: none; }
 .pref-btns { display: flex; gap: 6px; }
 .pref-panel .ghost-btn.sm { padding: 4px 10px; font-size: 12px; }
 .pref-panel .pref-hint + .pref-hint { margin-top: 4px; }
+
+/* ============================================================
+   深色模式补漏（2026-10 用户实测反馈）
+   这些规则必须放在文件末尾：同特异性下后者生效，
+   用来压过前面硬编码的 #fff / 浅色底。
+   ============================================================ */
+
+/* 表格：容器、表头、奇数行 */
+.theme-dark .prose table {
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.theme-dark .prose th {
+  background: #1b2430;
+  color: var(--ink-2);
+}
+.theme-dark .prose td { color: var(--ink); }
+.theme-dark .prose tr:nth-child(odd) td { background: transparent; }
+.theme-dark .prose tr:nth-child(even) td { background: #141b23; }
+
+/* 小测：容器底色 / 选项 / 解析 */
+.theme-dark .quiz {
+  background: #151a24;
+  border-color: #2a3341;
+}
+.theme-dark .quiz .exp {
+  background: #10161e;
+  color: var(--ink);
+  border-left-color: var(--brand);
+}
+.theme-dark .quiz ol.opts li { color: var(--ink); }
+.theme-dark .quiz ol.opts li.correct { color: #bbf7d0; }
+.theme-dark .quiz ol.opts li.wrong { color: #fecaca; }
+
+/* 批注标签：加深底色，抬高文字亮度 */
+.theme-dark .callout .tag { color: #cbd5e1 !important; }
+.theme-dark .callout.basic .tag { background: #1b3a52; color: #9fd8ff !important; }
+.theme-dark .callout.math .tag { background: #3a2f18; color: #ffd08a !important; }
+.theme-dark .callout.warn .tag { background: #3a1f1f; color: #ffb4a8 !important; }
+.theme-dark .callout.tip .tag { background: #143246; color: #93d8ff !important; }
+
+/* 按钮 */
+.theme-dark .ghost-btn {
+  background: transparent;
+  color: var(--ink-2);
+  border-color: #33404f;
+}
+.theme-dark .ghost-btn:hover { border-color: var(--brand); color: var(--brand-2); }
+.theme-dark .ghost-btn.primary {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color: #14121f;
+}
+.theme-dark .icon-btn { color: var(--ink-2); }
+
+/* 交互工具 */
+.theme-dark .widget { background: linear-gradient(180deg, #171e2a, var(--panel)); border-color: #2a3341; }
+.theme-dark .widget input { background: #0f151d; color: var(--ink); border-color: #33404f; }
+.theme-dark .widget .out, .theme-dark .widget .hint { color: var(--ink-2); }
+
+/* 目录 / 侧栏高亮 */
+.theme-dark .toc a.on { background: #1c2230; color: var(--brand-2); border-left-color: var(--brand); }
+.theme-dark .sb-progress .bar { background: #222b36; }
+
+/* 搜索 */
+.theme-dark .search-results .sr-item:hover, .theme-dark .search-results .sr-item.on { background: #1b2230; }
+.theme-dark .search-head input { color: var(--ink); }
+.theme-dark .search-foot { color: var(--muted); }
+.theme-dark mark { background: #4a3b00; color: #ffe08a; }
+
+/* 小测「重做」按钮 */
+.quiz-again {
+  margin: 10px 0 0; font-size: 12px; color: var(--muted);
+  background: none; border: none; cursor: pointer; padding: 0;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.quiz-again:hover { color: var(--brand); }
+.theme-dark .quiz-again { color: #8b949e; }
+
+/* 404 页面 */
+.nf-wrap { padding: 60px 0; text-align: center; }
+.nf-wrap .code { font-family: var(--mono); font-size: 64px; font-weight: 800; color: var(--brand); letter-spacing: -.03em; }
+.nf-wrap p { color: var(--muted); margin: 10px 0 22px; }

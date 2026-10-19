@@ -84,7 +84,7 @@ print(torch.allclose(layer(x), y_manual))   # True</code></pre>
 <pre data-lang="python"><code>def count_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-print(count_params(TwoLayerNet()))   # 101882 = 100480 + 128 + 1290 + 10
+print(count_params(TwoLayerNet()))   # 101770 = 100480 + 1290
 
 # 看看每一层各占多少
 for name, p in model.named_parameters():
@@ -294,7 +294,7 @@ print(torch.allclose(layer(x), y_manual))   # True</code></pre>
 <pre data-lang="python"><code>def count_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-print(count_params(TwoLayerNet()))   # 101882
+print(count_params(TwoLayerNet()))   # 101770 = 100480 + 1290
 
 for name, p in model.named_parameters():
     print(f"{name:10s} {str(tuple(p.shape)):12s} {p.numel()}")</code></pre>

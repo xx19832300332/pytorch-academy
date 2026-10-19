@@ -72,15 +72,15 @@ print(time.time() - start)</code></pre>
 </div>
 
 <h2>4. 混合精度（AMP）：最划算的加速</h2>
-<pre data-lang="python"><code>from torch.cuda.amp import autocast, GradScaler
+<pre data-lang="python"><code>from torch.amp import autocast, GradScaler    # PyTorch 2.x 推荐入口
 
-scaler = GradScaler()
+scaler = GradScaler("cuda")                   # 指定设备，不再依赖隐式判断
 
 for xb, yb in loader:
     xb, yb = xb.to(device), yb.to(device)
     optimizer.zero_grad()
 
-    with autocast(dtype=torch.float16):     # 前向用半精度算
+    with autocast("cuda", dtype=torch.float16):   # 前向用半精度算
         loss = criterion(model(xb), yb)
 
     scaler.scale(loss).backward()           # 梯度放大，防止下溢
@@ -96,7 +96,7 @@ for xb, yb in loader:
 
 <div class="callout tip">
   <span class="tag">新版本写法</span>
-  <p>PyTorch 2.x 里 <code>torch.amp.autocast("cuda")</code> 是新的推荐接口，<code>GradScaler("cuda")</code> 同理。功能一样，只是参数位置变了。</p>
+  <p>上面代码用的就是 2.x 的新接口：<code>torch.amp.autocast("cuda", ...)</code> 与 <code>GradScaler("cuda")</code>，设备名作为第一个参数显式传入。旧写法 <code>torch.cuda.amp.autocast()</code> / <code>GradScaler()</code> 在 2.4+ 会给出 FutureWarning，功能相同，但新代码请直接用新接口。</p>
 </div>
 
 <h2>5. 显存爆了怎么办（按顺序试）</h2>
@@ -261,12 +261,12 @@ print(time.time() - start)</code></pre>
 </div>
 
 <h2>4. Mixed precision (AMP)</h2>
-<pre data-lang="python"><code>from torch.cuda.amp import autocast, GradScaler
-scaler = GradScaler()
+<pre data-lang="python"><code>from torch.amp import autocast, GradScaler   # recommended entry point in 2.x
+scaler = GradScaler("cuda")                  # explicit device
 
 for xb, yb in loader:
     optimizer.zero_grad()
-    with autocast(dtype=torch.float16):
+    with autocast("cuda", dtype=torch.float16):
         loss = criterion(model(xb.to(device)), yb.to(device))
 
     scaler.scale(loss).backward()

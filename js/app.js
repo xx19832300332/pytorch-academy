@@ -68,6 +68,7 @@
       kProgress: '已完成章节',
       kWrong: '待复习错题',
       colabHint: '复制本段代码并在 Colab 新开一个笔记本',
+      popupBlocked: '弹窗被拦截，代码已复制',
       roadmap: '课程路线图',
       tools: '实践工具',
       tool1t: 'Jupyter Notebook',
@@ -138,6 +139,7 @@
       kProgress: 'Chapters done',
       kWrong: 'Mistakes to review',
       colabHint: 'Copy this snippet and open a new Colab notebook',
+      popupBlocked: 'Popup blocked — code copied',
       roadmap: 'Roadmap',
       tools: 'Practice tools',
       tool1t: 'Jupyter notebooks',
@@ -172,7 +174,8 @@
     del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
   };
   var K = { lang: 'pta.lang', prog: 'pta.progress', note: 'pta.notes', ann: 'pta.annotations', star: 'pta.stars', last: 'pta.last',
-    ui: 'pta.ui', fold: 'pta.fold', visited: 'pta.visited', scroll: 'pta.scroll', wrong: 'pta.wrong', stats: 'pta.stats' };
+    ui: 'pta.ui', fold: 'pta.fold', visited: 'pta.visited', scroll: 'pta.scroll', wrong: 'pta.wrong', stats: 'pta.stats',
+    annsig: 'pta.annsig' };
 
   var state = {
     lang: S.get(K.lang, 'zh'),
@@ -371,7 +374,7 @@
       '</div>' +
       '<div class="stat-row">' +
       '<div class="stat"><b>' + total + '</b><span>' + t('statChapters') + '</span></div>' +
-      '<div class="stat"><b>' + doneCount + '<i style="font-size:14px;color:#98a2b3;font-style:normal"> / ' + pct + '%</i></b><span>' + t('statDone') + '</span></div>' +
+      '<div class="stat"><b>' + doneCount + '</b><span>' + t('statDone') + (doneCount ? ' · ' + pct + '%' : '') + '</span></div>' +
       '<div class="stat"><b>' + noteChars + '</b><span>' + t('statNotes') + '</span></div>' +
       '<div class="stat"><b>' + markCount + '</b><span>' + t('statMarks') + '</span></div>' +
       '</div></section>';
@@ -456,6 +459,17 @@
     var starred = starMap()[id];
     var ann = S.get(K.ann, {});
     var key = id + '|' + state.lang;
+    /* 章节内容变了就丢掉旧快照，避免回放出上一版正文 */
+    if (ann[key]) {
+      var sigs = S.get(K.annsig, {});
+      var now = chapterSig(ch);
+      if (sigs[key] && sigs[key] !== now) {
+        delete ann[key];
+        S.set(K.ann, ann);
+        delete sigs[key];
+        S.set(K.annsig, sigs);
+      }
+    }
 
     var prev = idx > 0 ? CH[idx - 1] : null;
     var next = idx < CH.length - 1 ? CH[idx + 1] : null;
@@ -530,10 +544,13 @@
       var cbl = head.querySelector('.cb-colab');
       if (cbl) cbl.addEventListener('click', function () {
         var btn = this;
+        /* 必须先同步开窗：window.open 一旦挪进 copyText 的异步回调，就脱离了用户手势，
+           浏览器会当成弹窗拦掉（首次点击失败、第二次才成功就是这个原因） */
+        var win = null;
+        try { win = window.open('https://colab.research.google.com/#create=true', '_blank'); } catch (err) { win = null; }
         copyText(raw, function (ok) {
-          btn.textContent = ok ? t('copied') : 'Colab ↗';
-          setTimeout(function () { btn.textContent = 'Colab ↗'; }, 1600);
-          window.open('https://colab.research.google.com/#create=true', '_blank', 'noopener');
+          btn.textContent = win ? (ok ? t('copied') : 'Colab ↗') : t('popupBlocked');
+          setTimeout(function () { btn.textContent = 'Colab ↗'; }, 1900);
         });
       });
     });
@@ -846,7 +863,21 @@
   }
 
   /* ---------------- quizzes ---------------- */
+  function resetQuiz(quiz) {
+    if (!quiz) return;
+    quiz.classList.remove('answered');
+    $$('li', quiz.querySelector('ol.opts')).forEach(function (x) {
+      x.classList.remove('correct', 'wrong');
+    });
+    var btn = quiz.querySelector('.quiz-again');
+    if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
+    saveAnn();
+  }
+
   function onQuizClick(e) {
+    var again = e.target.closest ? e.target.closest('.quiz-again') : null;
+    if (again) { resetQuiz(again.closest('.quiz')); return; }
+
     var li = e.target.closest ? e.target.closest('.quiz ol.opts li') : null;
     if (!li) return;
     var quiz = li.closest('.quiz');
@@ -872,6 +903,13 @@
       });
       renderSidebar();
     }
+    if (!quiz.querySelector('.quiz-again')) {
+      var again = document.createElement('button');
+      again.type = 'button';
+      again.className = 'quiz-again';
+      again.textContent = state.lang === 'zh' ? '重做这题' : 'Try this one again';
+      quiz.appendChild(again);
+    }
     saveAnn();
   }
 
@@ -882,9 +920,9 @@
       '<h4>' + (zh ? '广播形状计算器' : 'Broadcast shape calculator') + '</h4>' +
       '<p class="hint">' + (zh ? '输入两个张量的形状，例如 3,1 与 1,4（从最后一维开始右对齐比较）' : 'Enter two shapes, e.g. 3,1 and 1,4 (compare right-aligned from the last dim)') + '</p>' +
       '<div class="inputs">' +
-      '<input id="wa" value="3,1" placeholder="3,1">' +
+      '<input id="wa" value="3,1" placeholder="3,1" aria-label="' + (zh ? '张量 A 的形状' : 'Shape of tensor A') + '">' +
       '<span style="color:#98a2b3">×</span>' +
-      '<input id="wb" value="1,4" placeholder="1,4">' +
+      '<input id="wb" value="1,4" placeholder="1,4" aria-label="' + (zh ? '张量 B 的形状' : 'Shape of tensor B') + '">' +
       '<button class="go">' + (zh ? '计算' : 'Compute') + '</button>' +
       '</div>' +
       '<div class="out"></div>';
@@ -919,12 +957,12 @@
       '<h4>' + (zh ? '卷积输出尺寸与参数量计算器' : 'Conv output size & parameter calculator') + '</h4>' +
       '<p class="hint">' + (zh ? '六个数依次是：输入边长 H · kernel K · stride S · padding P · 输入通道 · 输出通道（鼠标悬停有提示）' : 'Six values in order: input H · kernel K · stride S · padding P · in_ch · out_ch (hover for tooltips)') + '</p>' +
       '<div class="inputs">' +
-      '<input id="cH" value="28" title="H">' +
-      '<input id="cK" value="5" title="K">' +
-      '<input id="cS" value="1" title="S">' +
-      '<input id="cP" value="0" title="P">' +
-      '<input id="cI" value="1" title="in_ch">' +
-      '<input id="cO" value="6" title="out_ch">' +
+      '<input id="cH" value="28" title="H" aria-label="' + (zh ? '输入高度 H' : 'Input height H') + '">' +
+      '<input id="cK" value="5" title="K" aria-label="' + (zh ? '卷积核大小 K' : 'Kernel size K') + '">' +
+      '<input id="cS" value="1" title="S" aria-label="' + (zh ? '步长 S' : 'Stride S') + '">' +
+      '<input id="cP" value="0" title="P" aria-label="' + (zh ? '填充 P' : 'Padding P') + '">' +
+      '<input id="cI" value="1" title="in_ch" aria-label="' + (zh ? '输入通道数' : 'Input channels') + '">' +
+      '<input id="cO" value="6" title="out_ch" aria-label="' + (zh ? '输出通道数' : 'Output channels') + '">' +
       '<button class="go">' + (zh ? '计算' : 'Compute') + '</button>' +
       '</div>' +
       '<div class="out"></div>';
@@ -1003,13 +1041,34 @@
   }
 
   /* ---------------- annotations ---------------- */
+  /* 章节内容指纹：章节更新后，旧快照里的 HTML 会和新内容对不上，
+     用它判断快照是否还值得回放（否则你看到的是上一版的正文） */
+  function chapterSig(ch) {
+    if (!ch) return '';
+    var src = (ch.zh && ch.zh.html ? ch.zh.html.length : 0) + ':' +
+              (ch.en && ch.en.html ? ch.en.html.length : 0) + ':';
+    var txt = (ch.zh && ch.zh.html ? ch.zh.html : '');
+    var h = 0;
+    for (var i = 0; i < txt.length; i += 5) h = (h * 33 + txt.charCodeAt(i)) | 0;
+    return src + (h >>> 0).toString(36);
+  }
+  function findChapter(id) {
+    for (var i = 0; i < CH.length; i++) { if (CH[i].id === id) return CH[i]; }
+    return null;
+  }
+
   function saveAnn() {
     if (!state.chapter) return;
     var body = $('#chapterBody');
     if (!body) return;
     var all = S.get(K.ann, {});
-    all[state.chapter + '|' + state.lang] = body.innerHTML;
+    var key = state.chapter + '|' + state.lang;
+    all[key] = body.innerHTML;
     S.set(K.ann, all);
+
+    var sigs = S.get(K.annsig, {});
+    sigs[key] = chapterSig(findChapter(state.chapter));
+    S.set(K.annsig, sigs);
   }
 
   function onSelectionEnd() {
@@ -1453,7 +1512,33 @@
     else if (hash === 'practice') renderPractice();
     else if (hash === 'faq') renderFaq();
     else if (hash === 'wrong') renderWrong();
-    else renderChapter(hash);
+    else if (CH.some(function (c) { return c.id === hash; })) renderChapter(hash);
+    else renderNotFound(hash);
+  }
+
+  /* ---------------- 404 ---------------- */
+  function renderNotFound(hash) {
+    var zh = state.lang === 'zh';
+    state.chapter = null;
+    var html = '<div class="ch-head">' +
+      '<div class="ch-kicker">404</div>' +
+      '<h1>' + (zh ? '这个页面不存在' : 'Page not found') + '</h1>' +
+      '<p class="ch-sub">' + (zh ? '你要找的地址是 ' : 'The address you followed is ') +
+      '<code>#/' + esc(hash) + '</code>' + (zh ? '，但站点里没有这一页。' : ', which does not exist here.') + '</p>' +
+      '</div>' +
+      '<div class="nf-wrap">' +
+      '<div class="code">404</div>' +
+      '<p>' + (zh ? '可能是链接拼错了，或者这一章的内容调整过位置。' : 'The link may be mistyped, or that chapter moved.') + '</p>' +
+      '<div class="hero-actions" style="justify-content:center">' +
+      '<a class="ghost-btn primary" href="#/home">' + (zh ? '回到目录' : 'Back to syllabus') + '</a>' +
+      '<a class="ghost-btn" href="#/' + CH[0].id + '">' + (zh ? '从第 ' : 'Start at chapter ') + esc(CH[0].num) + (zh ? ' 章开始' : '') + '</a>' +
+      '</div></div>';
+    els.content.innerHTML = html;
+    document.title = (zh ? '页面不存在' : 'Not found') + ' · PyTorch Academy';
+    els.toc.innerHTML = '';
+    renderSidebar();
+    window.scrollTo({ top: 0 });
+    closeDrawer();
   }
 
   /* ---------------- mistake book ---------------- */

@@ -170,7 +170,7 @@ torch.randn(3)              # 每次运行结果都一样
 <div class="quiz" data-answer="2">
   <p class="q"><code>torch.arange(24).reshape(2, 3, 4)</code> 的 <code>numel()</code> 和 <code>dim()</code> 分别是？</p>
   <ol class="opts">
-    <li>24 和 3</li>
+    <li>24 和 4</li>
     <li>3 和 24</li>
     <li>24 和 3 —— 元素 24 个，轴 3 个</li>
     <li>6 和 4</li>

@@ -7,7 +7,7 @@
     title: '预备知识：Python 与数学的最小集合',
     sub: '不必先学完高数和线代，但下面这些「零件」你得认识',
     html: `
-<p class="lead">很多教程第一页就开始写 <code>nn.Module</code>，结果读者卡在「为什么这里要转置」「梯度到底是个啥」。这一章先把后面 14 章会用到的 Python 语法、张量直觉、矩阵乘法、导数和概率，用最小的篇幅过一遍。看不懂的地方不用背，混个脸熟就行，后面遇到会反复回来。</p>
+<p class="lead">很多教程第一页就开始写 <code>nn.Module</code>，结果读者卡在「为什么这里要转置」「梯度到底是个啥」。这一章先把后面 16 章会用到的 Python 语法、张量直觉、矩阵乘法、导数和概率，用最小的篇幅过一遍。看不懂的地方不用背，混个脸熟就行，后面遇到会反复回来。</p>
 
 <div class="objectives">
   <h4>学完你能做到</h4>
@@ -173,7 +173,7 @@ for step in range(5):
   </ol>
 </div>
 
-<div class="quiz" data-answer="1">
+<div class="quiz" data-answer="0">
   <p class="q">形状为 <code>(64, 20)</code> 的张量和形状为 <code>(20, 5)</code> 的张量做矩阵乘法，结果是？</p>
   <ol class="opts">
     <li>(64, 5)</li>
@@ -208,7 +208,7 @@ for step in range(5):
     title: 'Prerequisites: the minimum Python and math',
     sub: 'You do not need a full calculus course — just recognise these parts',
     html: `
-<p class="lead">Most tutorials jump straight into <code>nn.Module</code> and leave readers stuck on "why transpose here" and "what even is a gradient". This chapter covers the Python syntax, tensor intuition, matrix multiplication, derivatives and probability that the next 14 chapters rely on. You do not need to memorise anything; just get familiar, and come back when something feels shaky.</p>
+<p class="lead">Most tutorials jump straight into <code>nn.Module</code> and leave readers stuck on "why transpose here" and "what even is a gradient". This chapter covers the Python syntax, tensor intuition, matrix multiplication, derivatives and probability that the next 16 chapters rely on. You do not need to memorise anything; just get familiar, and come back when something feels shaky.</p>
 
 <div class="objectives">
   <h4>After this chapter you can</h4>
