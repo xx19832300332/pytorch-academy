@@ -9,7 +9,7 @@
    注意：service worker 只在 http/https 下生效，file:// 打开时不会注册。
    发版后旧的 VERSION 会让新 worker 重新预缓存，activate 时清掉旧缓存。 */
 
-var VERSION = 'v3-2026-10-18';
+var VERSION = 'v4-2026-10-19';
 var CACHE = 'pta-' + VERSION;
 var EXTRA = [
   './',
